@@ -1,12 +1,16 @@
 const { Client } = require('@elastic/elasticsearch');
-const { client } = require('../config/elasticsearch');
 
 const esClient = new Client({ node: 'http://localhost:9200' });
 
-
 const createIndex = async () => {
-  
   const exists = await esClient.indices.exists({ index: 'imoveis' });
+
+  await esClient.indices.delete({ index: 'imoveis' }).catch(err => {
+  if (err.meta.statusCode !== 404) {
+    throw err; 
+  }
+});
+  
   if (!exists.body) {
     await esClient.indices.create({
       index: 'imoveis',
@@ -31,13 +35,9 @@ const createIndex = async () => {
         },
       },
     });
-    //console.log('Índice imoveis criado.');
-  } else {
-    return console.log('Índice imoveis criado.');
+    console.log('Índice imoveis criado.');
   }
 };
 
-
-createIndex()
 
 module.exports = { esClient, createIndex };

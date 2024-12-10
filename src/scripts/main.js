@@ -1,28 +1,26 @@
-const { scrapeImoveis } = require('../crawler/imoveisScraper');
+const { scrapeImoveis, saveToDatabase } = require('../crawler/imoveisScraper');
 const { esClient } = require('../config/elasticsearch');
-const { Pool } = require('pg');
-
-const pool = new Pool({ user: 'docker', database: 'crawlertestdb', password: 'docker' });
+const { pool } = require('../config/pools');
+const { saveScraperData } = require('./saveData');
 
 const main = async () => {
   try {
-    const { rows } = await pool.query('SELECT * FROM portal');
-    const portal = rows[0];
-    console.log(portal)
-
-    console.log(`Iniciando captura do portal: ${portal.nome}`);
-
-    const imoveis = await scrapeImoveis(portal.url);
-
+  const portalUrl = 'https://www.imoveis-sc.com.br';
+  const observacoes = 'WebCrawler apenas apartamento Imoveis - SC.'; 
+  const nome = 'Apartamentos Imoveis - SC';
+  const imoveis = await scrapeImoveis('https://www.imoveis-sc.com.br/todas-cidades/comprar/apartamento');
+   
     for (const imovel of imoveis) {
       await esClient.index({
         index: 'imoveis',
         body: { ...imovel, capturado_em: new Date(), atualizado_em: new Date() },
       });
     }
-    
-
     console.log('Imóveis inseridos no Elasticsearch.');
+  if(imoveis) {
+    await saveScraperData(portalUrl,nome, observacoes);
+  }
+   
   } catch (err) {
     console.error('Erro no processo:', err);
   } finally {

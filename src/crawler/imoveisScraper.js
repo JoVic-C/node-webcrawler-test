@@ -2,19 +2,18 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const { esClient } = require('../config/elasticsearch');
 
-const scrapeImoveis = async () => {
-  const urlBase = 'https://www.imoveis-sc.com.br/todas-cidades/comprar/apartamento';
+const scrapeImoveis = async (urlBase) => {
   let imoveis = [];
   let currentPage = 1;
   let hasNextPage = true;
-  const maxImoveis = 500;
+  const maxImoveis = 100;
 
   try {
     while (hasNextPage && imoveis.length < maxImoveis) {
       const url = `${urlBase}?pagina=${currentPage}`;
       console.log(`Capturando dados da página ${currentPage}: ${url}`);
 
-      const response = await axios.get(url);
+      const response = await axios.get(urlBase);
       const $ = cheerio.load(response.data);
 
       $('.imovel').each((_, element) => {
@@ -33,7 +32,7 @@ const scrapeImoveis = async () => {
           id: `${Date.now()}-${Math.random()}`,
           titulo,
           descricao: titulo,
-          portal: 'Imoveis Portal',
+          portal: 'Imoveis - SC',
           urlDoImovel,
           tipoNegocio: 'Venda',
           endereco,
@@ -62,8 +61,8 @@ const scrapeImoveis = async () => {
   }
 };
 
+
 const saveToElasticsearch = async (imoveis) => {
-  
   try {
     for (const imovel of imoveis) {
       await esClient.index({
@@ -77,9 +76,5 @@ const saveToElasticsearch = async (imoveis) => {
   }
 
 };
-
-
-
-
 
 module.exports = { scrapeImoveis, saveToElasticsearch };
